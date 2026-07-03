@@ -16,7 +16,6 @@ class Product(Base):
     weight_kg = Column(Float, nullable=True)
     is_draft = Column(Boolean, default=False)
 
-# Pydantic Schemas for API
 class ProductBase(BaseModel):
     name: str
     sku: str

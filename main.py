@@ -138,7 +138,6 @@ def process_csv(decoded_content: str, db: Session):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Seed data on startup
     db = SessionLocal()
     try:
         if db.query(Product).count() == 0 and os.path.exists("products.csv"):
@@ -227,7 +226,7 @@ async def import_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail="File must be a CSV")
     
     content = await file.read()
-    # Decode keeping it robust against different encodings
+
     try:
         decoded_content = content.decode('utf-8')
     except UnicodeDecodeError:
@@ -242,7 +241,7 @@ def flush_database(db: Session = Depends(get_db)):
     return {"message": "Database flushed successfully"}
 
 class PurchaseRequest(ProductBase):
-    pass # We just need something to trigger it, could be empty
+    pass
 
 @app.post("/api/products/{product_id}/purchase")
 def purchase_product(product_id: int, db: Session = Depends(get_db)):
@@ -253,12 +252,10 @@ def purchase_product(product_id: int, db: Session = Depends(get_db)):
     if db_product.stock <= 0:
         raise HTTPException(status_code=400, detail="Product is out of stock")
         
-    # Fake purchase logic: just decrement stock
     db_product.stock -= 1
     db.commit()
     return {"message": "Purchase successful", "new_stock": db_product.stock}
 
-# Mount static files at the end to not override api routes
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
