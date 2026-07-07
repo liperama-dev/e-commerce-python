@@ -5,7 +5,7 @@ from app.database import Base
 
 
 class Product(Base):
-    """Core product table — Phase 3 schema (Numeric price, Category FK)."""
+    """Database model representing a Product."""
 
     __tablename__ = "products"
 

@@ -1,12 +1,7 @@
 """Initial schema — products table
 
-Revision ID: 001
-Revises:
-Create Date: 2026-07-07
-
-Creates the original products table that matches the Phase 1 ORM model
-(Float price, plain String category column, no Category or Order tables).
-Phase 3 migration (002) will evolve this schema.
+Creates the initial products table (Float price, plain String category column).
+Future migrations will evolve this schema to support normalised categories and order tracking.
 """
 
 from typing import Sequence, Union

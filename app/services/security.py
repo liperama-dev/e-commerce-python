@@ -5,8 +5,7 @@ import bleach
 def is_security_threat(value: str) -> bool:
     """
     Check for XSS attacks.
-    SQLi checks were removed in Phase 5 because SQLAlchemy parameterisation
-    provides robust protection without false positives.
+    Rely on SQLAlchemy parameterisation for SQL injection protection.
     """
     if not isinstance(value, str):
         return False
