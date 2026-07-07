@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
@@ -8,7 +9,7 @@ class ProductBase(BaseModel):
     sku: str
     description: str = ""
     category: str = "Misc"
-    price: Optional[float] = None
+    price: Optional[Decimal] = None
     stock: Optional[int] = None
     weight_kg: Optional[float] = None
     is_draft: bool = False
@@ -26,7 +27,7 @@ class ProductUpdate(BaseModel):
     sku: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
-    price: Optional[float] = None
+    price: Optional[Decimal] = None
     stock: Optional[int] = None
     weight_kg: Optional[float] = None
     is_draft: Optional[bool] = None

@@ -1,10 +1,11 @@
-from sqlalchemy import Boolean, Column, Float, Integer, String, Text
+from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
 
 class Product(Base):
-    """Core product table — Phase 1 schema (Float price, plain String category)."""
+    """Core product table — Phase 3 schema (Numeric price, Category FK)."""
 
     __tablename__ = "products"
 
@@ -12,8 +13,15 @@ class Product(Base):
     name = Column(String, index=True)
     sku = Column(String, unique=True, index=True)
     description = Column(Text)
-    category = Column(String, index=True)
-    price = Column(Float, nullable=True)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    price = Column(Numeric(10, 2), nullable=True)
     stock = Column(Integer, nullable=True)
     weight_kg = Column(Float, nullable=True)
     is_draft = Column(Boolean, default=False)
+
+    category_rel = relationship("Category")
+
+    @property
+    def category(self) -> str:
+        """Helper to return the category name for Pydantic serialization."""
+        return self.category_rel.name if self.category_rel else "Misc"
