@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
 from app.dependencies.auth import verify_admin_key
+from app.models.category import Category
 from app.models.product import Product
 from app.schemas.import_job import ImportJobResponse
 from app.services.csv_import import process_csv
@@ -66,8 +67,9 @@ def get_import_status(job_id: str):
 @router.post("/flush")
 def flush_database(db: Session = Depends(get_db)):
     """
-    Delete all products from the database.
+    Delete all products and categories from the database.
     """
     db.query(Product).delete()
+    db.query(Category).delete()
     db.commit()
     return {"message": "Database flushed successfully"}
