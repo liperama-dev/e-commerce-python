@@ -55,7 +55,7 @@ function renderProductGrid(products) {
         card.className = 'product-card';
         card.innerHTML = `
             <div class="product-header">
-                <h3>${p.name ? p.name : naTag()}</h3>
+                <h3>${p.name}</h3>
                 <span class="product-price">${p.price != null ? '$' + p.price.toFixed(2) : 'N/A'}</span>
             </div>
             <div class="product-meta">
