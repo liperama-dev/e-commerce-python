@@ -4,9 +4,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.database import Base, get_db
-from app.main import app
-
 # Use an in-memory SQLite DB for isolation — no migrations needed
 SQLALCHEMY_TEST_URL = "sqlite:///:memory:"
 
@@ -16,6 +13,13 @@ engine = create_engine(
     poolclass=StaticPool,
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Override SessionLocal BEFORE importing app modules so the routers use TestingSessionLocal
+import app.database as app_db
+app_db.SessionLocal = TestingSessionLocal
+
+from app.database import Base, get_db
+from app.main import app
 
 
 @pytest.fixture(scope="function")

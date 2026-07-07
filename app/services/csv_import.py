@@ -4,8 +4,7 @@ from decimal import Decimal, InvalidOperation
 
 from sqlalchemy.orm import Session
 
-from app.models.product import Product
-from app.services.category import get_or_create_category
+from app.models import Category, Product
 from app.services.security import is_security_threat
 
 
@@ -14,14 +13,16 @@ def process_csv(decoded_content: str, db: Session) -> dict:
     Parse *decoded_content* as CSV and upsert products into the database.
 
     Returns a summary dict with imported/discarded counts and discard reasons.
-
-    Phase 1 behaviour: one db.commit() per successful row.
-    Phase 4 will replace this with savepoints + a single final commit.
+    Uses savepoints per row to allow partial success, and caches categories
+    to optimize lookups and avoid session identity map warnings.
     """
     csv_reader = csv.DictReader(io.StringIO(decoded_content))
     imported_count = 0
     discarded_count = 0
     discard_reasons: list[dict] = []
+
+    # Cache categories to prevent duplicate lookups and session identity warnings
+    categories_cache = {c.name: c for c in db.query(Category).all()}
 
     for row_num, row in enumerate(csv_reader, start=2):
         # Skip completely blank rows
@@ -35,6 +36,24 @@ def process_csv(decoded_content: str, db: Session) -> dict:
         }
         if not any(clean_row.values()):
             continue
+
+        category_name = clean_row.get("category", "Misc")
+        # Ensure category exists in the cache/DB before starting the product savepoint.
+        # This keeps the category creation out of the product savepoint so it persists.
+        if category_name not in categories_cache:
+            try:
+                category = Category(name=category_name)
+                db.add(category)
+                db.flush()
+                categories_cache[category_name] = category
+            except Exception as e:
+                discarded_count += 1
+                discard_reasons.append(
+                    {"row": row_num, "reason": f"Category creation failed: {e}"}
+                )
+                continue
+        else:
+            category = categories_cache[category_name]
 
         try:
             with db.begin_nested():
@@ -87,9 +106,6 @@ def process_csv(decoded_content: str, db: Session) -> dict:
 
                 sku = clean_row.get("sku", "")
                 db_product = db.query(Product).filter(Product.sku == sku).first()
-
-                category_name = clean_row.get("category", "Misc")
-                category = get_or_create_category(db, category_name)
 
                 if db_product:
                     db_product.name = clean_row["name"]
