@@ -262,3 +262,113 @@ async function deleteProduct(id) {
         console.error("Error:", error);
     }
 }
+
+// ── Categories Management ────────────────────────────────────────────────────
+async function populateCategoryDatalist() {
+    try {
+        const res = await fetch(`${API_URL}/categories`);
+        if (res.ok) {
+            const categories = await res.json();
+            const datalist = document.getElementById('category-list');
+            datalist.innerHTML = '';
+            categories.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.name;
+                datalist.appendChild(opt);
+            });
+        }
+    } catch (err) {
+        console.error("Error fetching categories for list:", err);
+    }
+}
+
+async function loadAdminCategories() {
+    try {
+        const res = await fetch(`${API_URL}/categories`);
+        if (res.ok) {
+            const categories = await res.json();
+            const tbody = document.getElementById('admin-category-list');
+            tbody.innerHTML = '';
+            categories.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${c.id}</td>
+                    <td><strong>${c.name}</strong></td>
+                    <td>
+                        <button class="btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="editCategory(${c.id}, '${c.name.replace(/'/g, "\\'")}')">Rename</button>
+                        <button class="btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="deleteCategory(${c.id})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch (err) {
+        console.error("Error loading categories:", err);
+    }
+}
+
+async function submitCategoryForm(e) {
+    e.preventDefault();
+    const nameInput = document.getElementById('newCategoryName');
+    const name = nameInput.value.trim();
+    if (!name) return;
+
+    try {
+        const res = await fetchWithAdmin(`${API_URL}/categories`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+        if (res.ok) {
+            nameInput.value = '';
+            loadAdminCategories();
+        } else {
+            const err = await res.json();
+            alert(err.detail || "Error creating category");
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function editCategory(id, currentName) {
+    const newName = prompt("Rename category:", currentName);
+    if (!newName || !newName.trim() || newName.trim() === currentName) return;
+
+    try {
+        const res = await fetchWithAdmin(`${API_URL}/categories/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName.trim() })
+        });
+        if (res.ok) {
+            loadAdminCategories();
+            loadAdminProducts(); // update product table view if needed
+        } else {
+            const err = await res.json();
+            alert(err.detail || "Error updating category");
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function deleteCategory(id) {
+    if (!confirm("Are you sure you want to delete this category? All associated products will become uncategorized.")) return;
+
+    try {
+        const res = await fetchWithAdmin(`${API_URL}/categories/${id}`, {
+            method: 'DELETE'
+        });
+        if (res.ok) {
+            loadAdminCategories();
+            loadAdminProducts();
+        } else {
+            const err = await res.json();
+            alert(err.detail || "Error deleting category");
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+

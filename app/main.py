@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.database import SessionLocal
 from app.models import Product
-from app.routers import admin, auth, orders, products
+from app.routers import admin, auth, categories, orders, products
 from app.services.csv_import import process_csv
 
 
@@ -36,6 +36,7 @@ app = FastAPI(
 )
 
 app.include_router(auth.router)
+app.include_router(categories.router)
 app.include_router(products.router)
 app.include_router(orders.router)
 app.include_router(admin.router)

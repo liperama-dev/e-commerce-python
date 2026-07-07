@@ -37,63 +37,100 @@
         <!-- Admin Section -->
         <section id="admin-section">
             <div class="section-header">
-                <h2>Product Management</h2>
-                <div>
+                <h2 id="admin-header-title">Product Management</h2>
+                <div id="admin-product-actions">
                     <button onclick="flushDatabase()" class="btn-danger" style="margin-right: 0.5rem;">Flush Database</button>
                     <button onclick="openModal('productModal')" class="btn-primary">+ New Product</button>
                 </div>
             </div>
 
-            <!-- Draft Attention Banner -->
-            <div id="draftsBanner" style="display:none; background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05)); border: 1px solid rgba(239,68,68,0.4); border-radius: 10px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <span style="font-size: 1.25rem;">&#9888;&#65039;</span>
-                    <span id="draftsBannerText" style="font-weight: 500; color: #fca5a5;"></span>
-                </div>
-                <button onclick="activateDraftFilter()" class="btn-danger" style="font-size: 0.85rem; padding: 0.4rem 1rem;">Review Drafts</button>
+            <!-- Subtabs navigation -->
+            <div class="admin-subtabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
+                <button onclick="showAdminSubtab('products')" id="btn-subtab-products" class="nav-btn active" style="background: none; border: none; padding: 0.5rem 1rem;">Products</button>
+                <button onclick="showAdminSubtab('categories')" id="btn-subtab-categories" class="nav-btn" style="background: none; border: none; padding: 0.5rem 1rem;">Categories</button>
             </div>
-            
-            <div class="admin-panel glass-panel" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3>Import Products</h3>
-                    <div class="import-form">
-                        <input type="file" id="csvFile" accept=".csv">
-                        <button onclick="uploadCsv()" class="btn-secondary">Upload CSV</button>
+
+            <!-- Products Subtab View -->
+            <div id="subtab-products-view">
+                <!-- Draft Attention Banner -->
+                <div id="draftsBanner" style="display:none; background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05)); border: 1px solid rgba(239,68,68,0.4); border-radius: 10px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.25rem;">&#9888;&#65039;</span>
+                        <span id="draftsBannerText" style="font-weight: 500; color: #fca5a5;"></span>
+                    </div>
+                    <button onclick="activateDraftFilter()" class="btn-danger" style="font-size: 0.85rem; padding: 0.4rem 1rem;">Review Drafts</button>
+                </div>
+                
+                <div class="admin-panel glass-panel" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3>Import Products</h3>
+                        <div class="import-form">
+                            <input type="file" id="csvFile" accept=".csv">
+                            <button onclick="uploadCsv()" class="btn-secondary">Upload CSV</button>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                        <div>
+                            <h3>Search</h3>
+                            <input type="text" id="adminSearchInput" placeholder="Search by name, SKU, description..." oninput="loadAdminProducts()" style="width: 260px;">
+                        </div>
+                        <div>
+                            <h3>Filter</h3>
+                            <select id="adminFilter" onchange="loadAdminProducts()" style="padding: 0.5rem; background: rgba(15, 23, 42, 0.6); color: var(--text-primary); border: 1px solid var(--glass-border); border-radius: 8px;">
+                                <option value="all">All Products</option>
+                                <option value="drafts">Drafts (Needs Attention)</option>
+                                <option value="published">Published</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 1rem; align-items: flex-end;">
-                    <div>
-                        <h3>Search</h3>
-                        <input type="text" id="adminSearchInput" placeholder="Search by name, SKU, description..." oninput="loadAdminProducts()" style="width: 260px;">
-                    </div>
-                    <div>
-                        <h3>Filter</h3>
-                        <select id="adminFilter" onchange="loadAdminProducts()" style="padding: 0.5rem; background: rgba(15, 23, 42, 0.6); color: var(--text-primary); border: 1px solid var(--glass-border); border-radius: 8px;">
-                            <option value="all">All Products</option>
-                            <option value="drafts">Drafts (Needs Attention)</option>
-                            <option value="published">Published</option>
-                        </select>
-                    </div>
+
+                <div class="table-container glass-panel">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Weight</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-product-list">
+                            <!-- Admin product rows -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="table-container glass-panel">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>SKU</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Stock</th>
-                            <th>Weight</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-product-list">
-                        <!-- Admin product rows -->
-                    </tbody>
-                </table>
+            <!-- Categories Subtab View -->
+            <div id="subtab-categories-view" style="display:none;">
+                <div class="admin-panel glass-panel" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div>
+                        <h3>Create Category</h3>
+                        <form onsubmit="submitCategoryForm(event)" class="import-form">
+                            <input type="text" id="newCategoryName" placeholder="Category name..." required style="padding: 0.5rem; background: rgba(15, 23, 42, 0.6); color: var(--text-primary); border: 1px solid var(--glass-border); border-radius: 8px; width: 220px;">
+                            <button type="submit" class="btn-primary" style="margin-left: 0.5rem;">Add Category</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="table-container glass-panel">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-category-list">
+                            <!-- Admin category rows -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -167,7 +204,10 @@
                 </div>
                 <div class="form-group">
                     <label for="category">Category</label>
-                    <input type="text" id="category">
+                    <input type="text" id="category" list="category-list" placeholder="Select or type category...">
+                    <datalist id="category-list">
+                        <!-- Populated dynamically via JS -->
+                    </datalist>
                 </div>
                 <div class="form-group">
                     <label for="price">Price</label>
@@ -232,10 +272,10 @@
         </div>
     </div>
 
-    <script src="/static/auth.js?v=11"></script>
-    <script src="/static/products.js?v=11"></script>
-    <script src="/static/admin.js?v=11"></script>
-    <script src="/static/orders.js?v=11"></script>
-    <script src="/static/app.js?v=11"></script>
+    <script src="/static/auth.js?v=12"></script>
+    <script src="/static/products.js?v=12"></script>
+    <script src="/static/admin.js?v=12"></script>
+    <script src="/static/orders.js?v=12"></script>
+    <script src="/static/app.js?v=12"></script>
 </body>
 </html>

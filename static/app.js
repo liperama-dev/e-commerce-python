@@ -12,9 +12,26 @@ function showSection(sectionId) {
     if (sectionId === 'products') {
         loadProducts();
     } else if (sectionId === 'admin') {
-        loadAdminProducts();
+        showAdminSubtab('products'); // Default to products view on Admin tab load
     } else if (sectionId === 'orders') {
         loadOrders();
+    }
+}
+
+function showAdminSubtab(subtabId) {
+    document.getElementById('subtab-products-view').style.display = subtabId === 'products' ? '' : 'none';
+    document.getElementById('subtab-categories-view').style.display = subtabId === 'categories' ? '' : 'none';
+    
+    document.getElementById('admin-product-actions').style.display = subtabId === 'products' ? '' : 'none';
+    document.getElementById('admin-header-title').textContent = subtabId === 'products' ? 'Product Management' : 'Category Management';
+
+    document.getElementById('btn-subtab-products').classList.toggle('active', subtabId === 'products');
+    document.getElementById('btn-subtab-categories').classList.toggle('active', subtabId === 'categories');
+
+    if (subtabId === 'products') {
+        loadAdminProducts();
+    } else if (subtabId === 'categories') {
+        loadAdminCategories();
     }
 }
 
@@ -22,6 +39,8 @@ function openModal(modalId) {
     document.getElementById(modalId).classList.add('show');
     if (modalId === 'loginModal') {
         fetchHint();
+    } else if (modalId === 'productModal') {
+        populateCategoryDatalist();
     }
 }
 

@@ -127,3 +127,54 @@ Special Name & Co,SKU-AMP,Ampersand test,Home & Office,20.00,5,2.0
     assert p_amp is not None
     assert p_amp.name == "Special Name & Co"
     assert p_amp.is_draft is False
+
+
+def test_categories_crud(client):
+    # 1. List initially (should have none or just default categories)
+    resp = client.get("/api/categories")
+    assert resp.status_code == 200
+    initial_count = len(resp.json())
+
+    # 2. Create category
+    resp = client.post("/api/categories", json={"name": "Kitchen"}, headers=ADMIN_HEADERS)
+    assert resp.status_code == 201
+    cat = resp.json()
+    assert cat["name"] == "Kitchen"
+    assert "id" in cat
+
+    # 3. Try duplicate create (should fail)
+    resp = client.post("/api/categories", json={"name": "Kitchen"}, headers=ADMIN_HEADERS)
+    assert resp.status_code == 400
+
+    # 4. Update category name
+    cat_id = cat["id"]
+    resp = client.put(f"/api/categories/{cat_id}", json={"name": "Home Kitchen"}, headers=ADMIN_HEADERS)
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "Home Kitchen"
+
+    # 5. Link category to product and verify delete uncategorises product
+    # Create product under "Home Kitchen"
+    client.post(
+        "/api/products",
+        json={
+            "name": "Toaster",
+            "sku": "TOAST-01",
+            "category": "Home Kitchen",
+            "price": 19.99,
+            "stock": 10,
+            "weight_kg": 1.2
+        }
+    )
+    products = client.get("/api/products").json()
+    assert len(products) == 1
+    assert products[0]["category"] == "Home Kitchen"
+
+    # Delete category
+    resp = client.delete(f"/api/categories/{cat_id}", headers=ADMIN_HEADERS)
+    assert resp.status_code == 200
+
+    # Verify product's category became "Misc" (its category_id was set to None, falls back to "Misc")
+    products = client.get("/api/products").json()
+    assert len(products) == 1
+    assert products[0]["category"] == "Misc"
+
