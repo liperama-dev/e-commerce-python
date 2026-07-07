@@ -102,3 +102,28 @@ def test_flush_clears_products(client):
     response = client.post("/api/products/flush", headers=ADMIN_HEADERS)
     assert response.status_code == 200
     assert client.get("/api/products").json() == []
+
+
+def test_import_with_empty_name_and_ampersand(client, db_session):
+    from app.services.csv_import import process_csv
+    from app.models.product import Product
+    
+    csv_data = """name,sku,description,category,price,stock,weight_kg
+,SKU-EMPTY-NAME,No name description,Sports,10.00,10,1.0
+Special Name & Co,SKU-AMP,Ampersand test,Home & Office,20.00,5,2.0
+"""
+    result = process_csv(csv_data, db_session)
+    assert result["imported_count"] == 2
+    assert result["discarded_count"] == 0
+    
+    # Check empty name product is created as draft
+    p_empty = db_session.query(Product).filter(Product.sku == "SKU-EMPTY-NAME").first()
+    assert p_empty is not None
+    assert p_empty.name is None
+    assert p_empty.is_draft is True
+    
+    # Check ampersand product is created and not draft
+    p_amp = db_session.query(Product).filter(Product.sku == "SKU-AMP").first()
+    assert p_amp is not None
+    assert p_amp.name == "Special Name & Co"
+    assert p_amp.is_draft is False

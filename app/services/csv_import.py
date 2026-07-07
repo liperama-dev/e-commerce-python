@@ -68,16 +68,19 @@ def process_csv(decoded_content: str, db: Session) -> dict:
 
         try:
             with db.begin_nested():
-                name = clean_row.get("name", "")
-                if not name.strip():
-                    raise ValueError("Name cannot be empty or whitespace")
+                is_draft = False
+
+                name_val = clean_row.get("name", "")
+                if not name_val.strip():
+                    product_name = None
+                    is_draft = True
+                else:
+                    product_name = name_val.strip()
 
                 # Security scan on every field
                 for k, v in clean_row.items():
                     if isinstance(v, str) and is_security_threat(v):
                         raise ValueError(f"Security threat detected in column '{k}'")
-
-                is_draft = False
 
                 # --- price ---
                 try:
@@ -119,7 +122,7 @@ def process_csv(decoded_content: str, db: Session) -> dict:
                 db_product = db.query(Product).filter(Product.sku == sku).first()
 
                 if db_product:
-                    db_product.name = clean_row["name"]
+                    db_product.name = product_name
                     db_product.description = clean_row.get("description", "")
                     db_product.category_id = category.id
                     db_product.price = price
@@ -128,7 +131,7 @@ def process_csv(decoded_content: str, db: Session) -> dict:
                     db_product.is_draft = is_draft
                 else:
                     new_product = Product(
-                        name=clean_row["name"],
+                        name=product_name,
                         sku=sku,
                         description=clean_row.get("description", ""),
                         category_id=category.id,

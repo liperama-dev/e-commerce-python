@@ -5,7 +5,7 @@ from pydantic import BaseModel, field_serializer
 
 
 class ProductBase(BaseModel):
-    name: str
+    name: Optional[str] = None
     sku: str
     description: str = ""
     category: str = "Misc"

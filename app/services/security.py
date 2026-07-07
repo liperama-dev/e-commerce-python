@@ -1,3 +1,4 @@
+import html
 import bleach
 
 
@@ -11,7 +12,7 @@ def is_security_threat(value: str) -> bool:
         return False
         
     sanitised = bleach.clean(value, tags=[], attributes={}, strip=True)
-    if sanitised != value:
+    if html.unescape(sanitised) != value:
         return True
 
     return False

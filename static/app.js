@@ -55,14 +55,14 @@ function renderProductGrid(products) {
         card.className = 'product-card';
         card.innerHTML = `
             <div class="product-header">
-                <h3>${p.name}</h3>
+                <h3>${p.name ? p.name : naTag()}</h3>
                 <span class="product-price">${p.price != null ? '$' + p.price.toFixed(2) : 'N/A'}</span>
             </div>
             <div class="product-meta">
                 <span>SKU: ${p.sku}</span>
                 <span>Category: ${p.category}</span>
             </div>
-            <p class="product-desc">${p.description}</p>
+            <p class="product-desc">${p.description || ''}</p>
             <div class="product-meta">
                 <span style="color: ${outOfStock ? 'var(--danger)' : 'var(--success)'}">
                     ${outOfStock ? 'Out of Stock' : `${p.stock} in stock`}
@@ -112,18 +112,19 @@ async function loadAdminProducts() {
         if (filterValue === 'drafts' && !p.is_draft) return;
         if (filterValue === 'published' && p.is_draft) return;
         if (keyword) {
-            const haystack = `${p.name} ${p.sku} ${p.description} ${p.category}`.toLowerCase();
+            const haystack = `${p.name || ''} ${p.sku} ${p.description || ''} ${p.category}`.toLowerCase();
             if (!haystack.includes(keyword)) return;
         }
 
         const tr = document.createElement('tr');
         const badge = p.is_draft ? draftBadge() : '';
+        const displayName = p.name ? p.name : naTag();
         const priceCell = p.price != null ? `$${p.price.toFixed(2)}` : naTag();
         const stockCell = p.stock != null ? p.stock : naTag();
         const weightCell = p.weight_kg != null ? `${p.weight_kg.toFixed(2)} kg` : naTag();
         tr.innerHTML = `
             <td>${p.sku}</td>
-            <td>${p.name} ${badge}</td>
+            <td>${displayName} ${badge}</td>
             <td>${p.category}</td>
             <td>${priceCell}</td>
             <td>${stockCell}</td>
