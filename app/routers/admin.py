@@ -2,12 +2,17 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Up
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
+from app.dependencies.auth import verify_admin_key
 from app.models.product import Product
 from app.schemas.import_job import ImportJobResponse
 from app.services.csv_import import process_csv
 from app.services.import_jobs import create_job, get_job, update_job
 
-router = APIRouter(prefix="/api/products", tags=["admin"])
+router = APIRouter(
+    prefix="/api/products", 
+    tags=["admin"], 
+    dependencies=[Depends(verify_admin_key)]
+)
 
 
 def _run_import_task(job_id: str, decoded_content: str):

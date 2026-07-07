@@ -27,6 +27,9 @@ def purchase_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    if product.is_draft:
+        raise HTTPException(status_code=400, detail="Cannot purchase a draft product")
+
     if product.stock is None or product.stock < request.quantity:
         raise HTTPException(status_code=400, detail="Not enough stock")
 
