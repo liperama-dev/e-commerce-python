@@ -15,6 +15,8 @@ router = APIRouter(prefix="/api/products", tags=["products"])
 def get_products(
     q: str = "",
     include_drafts: bool = False,
+    skip: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
 ):
     """List products. Supports full-text search via `q` and draft visibility toggle."""
@@ -27,7 +29,7 @@ def get_products(
             | Product.description.contains(q)
             | Product.sku.contains(q)
         )
-    return query.all()
+    return query.offset(skip).limit(limit).all()
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
