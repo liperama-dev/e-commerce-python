@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
+from app.services.category import get_or_create_category
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
@@ -41,7 +42,12 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     if db.query(Product).filter(Product.sku == product.sku).first():
         raise HTTPException(status_code=400, detail="SKU already registered")
-    new_product = Product(**product.model_dump())
+    
+    product_data = product.model_dump()
+    category_name = product_data.pop("category", "Misc")
+    category = get_or_create_category(db, category_name)
+    
+    new_product = Product(**product_data, category_id=category.id)
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
@@ -55,8 +61,16 @@ def update_product(
     db_product = db.query(Product).filter(Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
-    for key, value in product.model_dump(exclude_unset=True).items():
+    
+    update_data = product.model_dump(exclude_unset=True)
+    if "category" in update_data:
+        category_name = update_data.pop("category")
+        category = get_or_create_category(db, category_name)
+        db_product.category_id = category.id
+        
+    for key, value in update_data.items():
         setattr(db_product, key, value)
+        
     db.commit()
     db.refresh(db_product)
     return db_product

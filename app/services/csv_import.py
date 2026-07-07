@@ -1,9 +1,11 @@
 import csv
 import io
+from decimal import Decimal, InvalidOperation
 
 from sqlalchemy.orm import Session
 
 from app.models.product import Product
+from app.services.category import get_or_create_category
 from app.services.security import is_security_threat
 
 
@@ -62,11 +64,11 @@ def process_csv(decoded_content: str, db: Session) -> dict:
             # --- price ---
             try:
                 price_raw = clean_row.get("price", "") or ""
-                price = float(price_raw.replace("$", "").replace(",", "") or 0)
+                price = Decimal(str(price_raw).replace("$", "").replace(",", "") or 0)
                 if price < 0:
                     price = None
                     is_draft = True
-            except (ValueError, AttributeError):
+            except (ValueError, AttributeError, InvalidOperation):
                 price = None
                 is_draft = True
 
@@ -98,10 +100,13 @@ def process_csv(decoded_content: str, db: Session) -> dict:
             sku = clean_row.get("sku", "")
             db_product = db.query(Product).filter(Product.sku == sku).first()
 
+            category_name = clean_row.get("category", "Misc")
+            category = get_or_create_category(db, category_name)
+
             if db_product:
                 db_product.name = clean_row["name"]
                 db_product.description = clean_row.get("description", "")
-                db_product.category = clean_row.get("category", "Misc")
+                db_product.category_id = category.id
                 db_product.price = price
                 db_product.stock = stock
                 db_product.weight_kg = weight_kg
@@ -111,7 +116,7 @@ def process_csv(decoded_content: str, db: Session) -> dict:
                     name=clean_row["name"],
                     sku=sku,
                     description=clean_row.get("description", ""),
-                    category=clean_row.get("category", "Misc"),
+                    category_id=category.id,
                     price=price,
                     stock=stock,
                     weight_kg=weight_kg,
