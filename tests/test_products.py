@@ -53,7 +53,12 @@ def test_list_products_includes_drafts_when_requested(client):
 
 def test_list_products_search(client):
     client.post("/api/products", json=PRODUCT_PAYLOAD)
-    other = {**PRODUCT_PAYLOAD, "sku": "SKU-OTH", "name": "USB-C Cable"}
+    other = {
+        **PRODUCT_PAYLOAD,
+        "sku": "SKU-OTH",
+        "name": "USB-C Cable",
+        "description": "A high-speed USB-C charging cable",
+    }
     client.post("/api/products", json=other)
 
     response = client.get("/api/products?q=Headphone")

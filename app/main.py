@@ -29,13 +29,13 @@ async def lifespan(app: FastAPI):
     if os.getenv("TESTING") != "true":
         _run_migrations()
 
-    db = SessionLocal()
-    try:
-        if db.query(Product).count() == 0 and os.path.exists("products.csv"):
-            with open("products.csv", "r", encoding="utf-8", errors="ignore") as f:
-                process_csv(f.read(), db)
-    finally:
-        db.close()
+        db = SessionLocal()
+        try:
+            if db.query(Product).count() == 0 and os.path.exists("products.csv"):
+                with open("products.csv", "r", encoding="utf-8", errors="ignore") as f:
+                    process_csv(f.read(), db)
+        finally:
+            db.close()
 
     yield
 
