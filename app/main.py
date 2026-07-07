@@ -1,8 +1,6 @@
 import os
 from contextlib import asynccontextmanager
 
-from alembic import command
-from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -13,22 +11,18 @@ from app.routers import admin, orders, products
 from app.services.csv_import import process_csv
 
 
-def _run_migrations() -> None:
-    """Apply any pending Alembic migrations at startup."""
-    alembic_cfg = Config("alembic.ini")
-    command.upgrade(alembic_cfg, "head")
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Application startup:
-    1. Run 'alembic upgrade head' to apply any pending migrations.
-    2. Seed from products.csv if the products table is empty.
+    Application startup: seed from products.csv if the table is empty.
+
+    Migrations are intentionally NOT run here — they are handled by
+    entrypoint.sh (Docker) or by running `alembic upgrade head` manually
+    before starting the server locally. Running migrations here would open
+    a second SQLite connection concurrently with the seeding session,
+    causing an indefinite write lock.
     """
     if os.getenv("TESTING") != "true":
-        _run_migrations()
-
         db = SessionLocal()
         try:
             if db.query(Product).count() == 0 and os.path.exists("products.csv"):

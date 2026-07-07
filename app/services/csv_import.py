@@ -37,21 +37,32 @@ def process_csv(decoded_content: str, db: Session) -> dict:
         if not any(clean_row.values()):
             continue
 
-        category_name = clean_row.get("category", "Misc")
-        # Ensure category exists in the cache/DB before starting the product savepoint.
-        # This keeps the category creation out of the product savepoint so it persists.
+        category_name = clean_row.get("category") or "Misc"
+        if not category_name.strip():
+            category_name = "Misc"
+
+        # Ensure category exists — use a dedicated savepoint so that a
+        # flush failure (e.g. race-condition unique constraint) rolls back
+        # cleanly without corrupting the outer session state.
         if category_name not in categories_cache:
             try:
-                category = Category(name=category_name)
-                db.add(category)
-                db.flush()
+                with db.begin_nested():
+                    category = Category(name=category_name)
+                    db.add(category)
+                    db.flush()
                 categories_cache[category_name] = category
             except Exception as e:
-                discarded_count += 1
-                discard_reasons.append(
-                    {"row": row_num, "reason": f"Category creation failed: {e}"}
-                )
-                continue
+                # Category already exists (race) — try to fetch it instead.
+                existing = db.query(Category).filter(Category.name == category_name).first()
+                if existing:
+                    categories_cache[category_name] = existing
+                    category = existing
+                else:
+                    discarded_count += 1
+                    discard_reasons.append(
+                        {"row": row_num, "reason": f"Category error: {e}"}
+                    )
+                    continue
         else:
             category = categories_cache[category_name]
 
