@@ -5,8 +5,6 @@ from app.database import Base
 
 
 class Product(Base):
-    """Database model representing a Product."""
-
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)

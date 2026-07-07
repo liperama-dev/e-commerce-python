@@ -1,6 +1,5 @@
 #!/bin/sh
-# entrypoint.sh — runs Alembic migrations then starts the server.
-# This ensures the DB schema is always up-to-date on container start.
+
 set -e
 
 echo "Running database migrations..."

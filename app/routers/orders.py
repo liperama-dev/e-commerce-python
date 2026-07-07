@@ -36,7 +36,6 @@ def purchase_product(
     """
     Purchase a product by reducing its stock and creating an order record.
     Uses with_for_update() to prevent race conditions during concurrent purchases.
-    Note: SQLite doesn't actually lock on with_for_update, but this works for Postgres.
     """
     product = (
         db.query(Product)

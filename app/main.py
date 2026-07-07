@@ -15,12 +15,6 @@ from app.services.csv_import import process_csv
 async def lifespan(app: FastAPI):
     """
     Application startup: seed from products.csv if the table is empty.
-
-    Migrations are intentionally NOT run here — they are handled by
-    entrypoint.sh (Docker) or by running `alembic upgrade head` manually
-    before starting the server locally. Running migrations here would open
-    a second SQLite connection concurrently with the seeding session,
-    causing an indefinite write lock.
     """
     if os.getenv("TESTING") != "true":
         db = SessionLocal()

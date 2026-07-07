@@ -1,8 +1,6 @@
 import uuid
 from typing import Any, Dict, Optional
 
-# In-memory store for import jobs.
-# In a real enterprise app, this would be Redis or a database table.
 _jobs: Dict[str, Dict[str, Any]] = {}
 
 

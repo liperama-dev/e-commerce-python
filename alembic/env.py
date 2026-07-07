@@ -16,17 +16,13 @@ from alembic import context
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import application settings and models so autogenerate can detect schema.
-from app.config import settings  # noqa: E402
-import app.models  # noqa: E402 — registers all ORM models on Base.metadata
-from app.database import Base  # noqa: E402
+from app.config import settings
+import app.models
+from app.database import Base
 
-# Alembic Config object (provides access to alembic.ini values).
 config = context.config
-
-# Override the sqlalchemy.url from our app config so DATABASE_URL env var wins.
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
-# Set up Python logging from the alembic.ini [loggers] section.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
@@ -34,17 +30,12 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """
-    Run migrations in 'offline' mode — generate SQL without a live connection.
-    Useful for reviewing migration scripts before applying them.
-    """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        # SQLite requires batch mode for ALTER TABLE operations.
         render_as_batch=True,
     )
 
@@ -53,10 +44,6 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """
-    Run migrations in 'online' mode — applies changes to a live database.
-    This is the mode used by the entrypoint script at container startup.
-    """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -67,7 +54,6 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            # SQLite requires batch mode for ALTER TABLE / column type changes.
             render_as_batch=True,
         )
 

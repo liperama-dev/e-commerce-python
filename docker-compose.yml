@@ -9,8 +9,6 @@ services:
       - ADMIN_SECRET_KEY=${ADMIN_SECRET_KEY:-changeme}
     volumes:
       - sqlite_data:/data
-    # Static files and CSV seeds are baked into the image (no bind-mount),
-    # so we don't accidentally shadow the /app directory.
 
 volumes:
   sqlite_data:

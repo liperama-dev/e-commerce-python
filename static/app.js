@@ -11,11 +11,10 @@ function isLoggedIn() {
 
 function updateNavForAuth() {
     const loggedIn = isLoggedIn();
-    document.getElementById('nav-admin').style.display   = loggedIn ? '' : 'none';
-    document.getElementById('nav-orders').style.display  = loggedIn ? '' : 'none';
-    document.getElementById('nav-signin').style.display  = loggedIn ? 'none' : '';
+    document.getElementById('nav-admin').style.display = loggedIn ? '' : 'none';
+    document.getElementById('nav-orders').style.display = loggedIn ? '' : 'none';
+    document.getElementById('nav-signin').style.display = loggedIn ? 'none' : '';
     document.getElementById('nav-signout').style.display = loggedIn ? '' : 'none';
-    // If logged out while on a protected section, bounce back to shop
     if (!loggedIn) {
         const active = document.querySelector('section.active-section');
         if (active && active.id !== 'products-section') {
@@ -72,12 +71,11 @@ async function fetchHint() {
                 `${data.username} / ${data.password}`;
             hintDiv.style.display = 'block';
         }
-    } catch { /* non-testing env: hint endpoint returns 404, silently ignore */ }
+    } catch { }
 }
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 function showSection(sectionId) {
-    // Guard protected sections
     if ((sectionId === 'admin' || sectionId === 'orders') && !isLoggedIn()) {
         openModal('loginModal');
         return;
@@ -123,7 +121,7 @@ async function searchProducts() {
 function renderProductGrid(products) {
     const grid = document.getElementById('product-grid');
     grid.innerHTML = '';
-    
+
     if (products.length === 0) {
         grid.innerHTML = '<p>No products found.</p>';
         return;
@@ -187,7 +185,7 @@ async function loadAdminProducts() {
     }
 
     tbody.innerHTML = '';
-    
+
     allProducts.forEach(p => {
         if (filterValue === 'drafts' && !p.is_draft) return;
         if (filterValue === 'published' && p.is_draft) return;
@@ -298,7 +296,7 @@ async function uploadCsv() {
             method: 'POST',
             body: formData
         });
-        
+
         if (!response.ok) {
             if (response.status !== 401) {
                 const result = await response.json();
@@ -335,13 +333,13 @@ async function uploadCsv() {
                 if (statusData.status === 'completed') {
                     clearInterval(pollInterval);
                     statusDiv.style.display = 'none';
-                    
+
                     let alertMsg = `Import Complete!\n\nImported: ${statusData.imported_count}\nDiscarded: ${statusData.discarded_count}\n`;
                     if (statusData.discard_reasons && statusData.discard_reasons.length > 0) {
                         alertMsg += `\nReasons:\n` + statusData.discard_reasons.map(r => `Row ${r.row}: ${r.reason}`).join("\n");
                     }
                     alert(alertMsg);
-                    
+
                     fileInput.value = '';
                     loadAdminProducts();
                     loadProducts();
@@ -365,7 +363,7 @@ async function uploadCsv() {
 
 async function flushDatabase() {
     if (!confirm("Are you sure you want to flush the database? This will delete all products immediately.")) return;
-    
+
     try {
         const response = await fetchWithAdmin(`${API_URL}/products/flush`, {
             method: 'POST'
@@ -430,7 +428,7 @@ function editProduct(product) {
         btn.className = 'btn-secondary';
         btn.style.background = '';
     }
-    
+
     openModal('productModal');
 }
 
@@ -439,7 +437,7 @@ async function togglePublish() {
     const id = btn.getAttribute('data-product-id');
     const isDraft = btn.getAttribute('data-is-draft') === 'true';
     const action = isDraft ? 'publish' : 'unpublish';
-    
+
     try {
         const response = await fetch(`${API_URL}/products/${id}/${action}`, { method: 'POST' });
         if (response.ok) {
@@ -459,7 +457,7 @@ async function togglePublish() {
 async function saveProduct(e) {
     e.preventDefault();
     const id = document.getElementById('productId').value;
-    
+
     const priceVal = document.getElementById('price').value;
     const stockVal = document.getElementById('stock').value;
     const weightVal = document.getElementById('weight_kg').value;
@@ -502,7 +500,7 @@ async function saveProduct(e) {
 
 async function deleteProduct(id) {
     if (!confirm("Are you sure you want to delete this product?")) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/products/${id}`, {
             method: 'DELETE'
@@ -545,13 +543,13 @@ function autoFillPayment() {
 async function confirmPurchase(e) {
     e.preventDefault();
     const id = document.getElementById('purchaseProductId').value;
-    
+
     // Simulate payment processing delay
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerText;
     submitBtn.innerText = "Processing...";
     submitBtn.disabled = true;
-    
+
     setTimeout(async () => {
         try {
             const response = await fetch(`${API_URL}/products/${id}/purchase`, {
@@ -559,7 +557,7 @@ async function confirmPurchase(e) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({})
             });
-            
+
             if (response.ok) {
                 alert("Payment successful! Your order is confirmed.");
                 closeModal('purchaseModal');

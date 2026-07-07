@@ -22,7 +22,7 @@ def get_products(
     """List products. Supports full-text search via `q` and draft visibility toggle."""
     query = db.query(Product)
     if not include_drafts:
-        query = query.filter(Product.is_draft == False)  # noqa: E712
+        query = query.filter(Product.is_draft == False)
     if q:
         query = query.filter(
             Product.name.contains(q)
