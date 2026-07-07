@@ -15,9 +15,11 @@
             <button onclick="searchProducts()">Search</button>
         </div>
         <nav>
-            <button onclick="showSection('products')" class="nav-btn active">Shop</button>
-            <button onclick="showSection('admin')" class="nav-btn">Admin</button>
-            <button onclick="showSection('orders')" class="nav-btn">Orders</button>
+            <button onclick="showSection('products')" class="nav-btn active" id="nav-shop">Shop</button>
+            <button onclick="showSection('admin')" class="nav-btn" id="nav-admin" style="display:none;">Admin</button>
+            <button onclick="showSection('orders')" class="nav-btn" id="nav-orders" style="display:none;">Orders</button>
+            <button onclick="openModal('loginModal')" class="btn-primary nav-btn" id="nav-signin" style="margin-left:0.75rem;">Sign In</button>
+            <button onclick="logout()" class="btn-secondary nav-btn" id="nav-signout" style="display:none; margin-left:0.75rem;">Sign Out</button>
         </nav>
     </header>
 
@@ -123,6 +125,31 @@
         </section>
     </main>
 
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 420px;">
+            <span class="close" onclick="closeModal('loginModal')">&times;</span>
+            <h2>Admin Sign In</h2>
+            <div id="loginHint" style="display:none; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.35); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #93c5fd;">
+                &#128274; Default credentials: <strong id="loginHintText"></strong>
+            </div>
+            <div id="loginError" style="display:none; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #fca5a5;"></div>
+            <form id="loginForm" onsubmit="submitLogin(event)">
+                <div class="form-group full-width">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" autocomplete="username" required>
+                </div>
+                <div class="form-group full-width">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" autocomplete="current-password" required>
+                </div>
+                <div class="form-actions full-width" style="margin-top: 1.25rem;">
+                    <button type="submit" class="btn-primary" style="width: 100%;">Sign In</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Product Form Modal -->
     <div id="productModal" class="modal">
         <div class="modal-content glass-panel">
@@ -205,6 +232,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=9"></script>
+    <script src="/static/app.js?v=10"></script>
 </body>
 </html>

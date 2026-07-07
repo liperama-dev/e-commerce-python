@@ -1,10 +1,90 @@
 const API_URL = '/api';
 
-// Navigation
+// ── Auth state ───────────────────────────────────────────────────────────────
+function getToken() {
+    return localStorage.getItem('auth_token');
+}
+
+function isLoggedIn() {
+    return !!getToken();
+}
+
+function updateNavForAuth() {
+    const loggedIn = isLoggedIn();
+    document.getElementById('nav-admin').style.display   = loggedIn ? '' : 'none';
+    document.getElementById('nav-orders').style.display  = loggedIn ? '' : 'none';
+    document.getElementById('nav-signin').style.display  = loggedIn ? 'none' : '';
+    document.getElementById('nav-signout').style.display = loggedIn ? '' : 'none';
+    // If logged out while on a protected section, bounce back to shop
+    if (!loggedIn) {
+        const active = document.querySelector('section.active-section');
+        if (active && active.id !== 'products-section') {
+            document.querySelectorAll('section').forEach(s => s.classList.remove('active-section'));
+            document.getElementById('products-section').classList.add('active-section');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('nav-shop').classList.add('active');
+            loadProducts();
+        }
+    }
+}
+
+async function submitLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorDiv = document.getElementById('loginError');
+    errorDiv.style.display = 'none';
+
+    try {
+        const res = await fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem('auth_token', data.token);
+            closeModal('loginModal');
+            document.getElementById('loginForm').reset();
+            updateNavForAuth();
+        } else {
+            errorDiv.textContent = 'Invalid username or password.';
+            errorDiv.style.display = 'block';
+        }
+    } catch {
+        errorDiv.textContent = 'Could not reach server. Please try again.';
+        errorDiv.style.display = 'block';
+    }
+}
+
+function logout() {
+    localStorage.removeItem('auth_token');
+    updateNavForAuth();
+}
+
+async function fetchHint() {
+    try {
+        const res = await fetch(`${API_URL}/auth/hint`);
+        if (res.ok) {
+            const data = await res.json();
+            const hintDiv = document.getElementById('loginHint');
+            document.getElementById('loginHintText').textContent =
+                `${data.username} / ${data.password}`;
+            hintDiv.style.display = 'block';
+        }
+    } catch { /* non-testing env: hint endpoint returns 404, silently ignore */ }
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
 function showSection(sectionId) {
+    // Guard protected sections
+    if ((sectionId === 'admin' || sectionId === 'orders') && !isLoggedIn()) {
+        openModal('loginModal');
+        return;
+    }
     document.querySelectorAll('section').forEach(s => s.classList.remove('active-section'));
     document.getElementById(`${sectionId}-section`).classList.add('active-section');
-    
+
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     event.currentTarget.classList.add('active');
 
@@ -184,31 +264,21 @@ function renderOrders(orders) {
     });
 }
 
-// Authentication helper for admin operations
-function getAdminKey() {
-    let key = localStorage.getItem('admin_key');
-    if (!key) {
-        key = prompt("Please enter the Admin Secret Key:");
-        if (key) {
-            localStorage.setItem('admin_key', key);
-        }
-    }
-    return key;
-}
-
+// ── Admin-authenticated fetch ─────────────────────────────────────────────────
 async function fetchWithAdmin(url, options = {}) {
-    const key = getAdminKey();
-    if (!key) {
-        throw new Error("Admin key is required");
+    const token = getToken();
+    if (!token) {
+        openModal('loginModal');
+        throw new Error('Not authenticated');
     }
-    options.headers = {
-        ...options.headers,
-        'X-Admin-Key': key
-    };
+    options.headers = { ...options.headers, 'X-Admin-Key': token };
     const response = await fetch(url, options);
     if (response.status === 401) {
-        localStorage.removeItem('admin_key');
-        alert("Invalid Admin Key. Please try again.");
+        // Token is stale — force re-login
+        localStorage.removeItem('auth_token');
+        updateNavForAuth();
+        openModal('loginModal');
+        throw new Error('Session expired. Please sign in again.');
     }
     return response;
 }
@@ -313,9 +383,12 @@ async function flushDatabase() {
     }
 }
 
-// CRUD Operations
+// ── CRUD Operations ───────────────────────────────────────────────────────────
 function openModal(modalId) {
     document.getElementById(modalId).classList.add('show');
+    if (modalId === 'loginModal') {
+        fetchHint();
+    }
 }
 
 function closeModal(modalId) {
@@ -506,5 +579,10 @@ async function confirmPurchase(e) {
     }, 1500); // 1.5s fake delay
 }
 
-// Init
-window.onload = loadProducts;
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function initAuth() {
+    updateNavForAuth();
+    loadProducts();
+}
+
+window.onload = initAuth;
