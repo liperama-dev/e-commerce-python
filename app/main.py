@@ -1,24 +1,33 @@
 import os
 from contextlib import asynccontextmanager
 
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.database import Base, SessionLocal, engine
+from app.database import SessionLocal
 from app.models import Product
 from app.routers import admin, orders, products
 from app.services.csv_import import process_csv
+
+
+def _run_migrations() -> None:
+    """Apply any pending Alembic migrations at startup."""
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Application startup:
-    1. Create DB tables (Phase 2 will replace this with 'alembic upgrade head').
-    2. Seed from products.csv if the table is empty.
+    1. Run 'alembic upgrade head' to apply any pending migrations.
+    2. Seed from products.csv if the products table is empty.
     """
-    Base.metadata.create_all(bind=engine)
+    if os.getenv("TESTING") != "true":
+        _run_migrations()
 
     db = SessionLocal()
     try:
