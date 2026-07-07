@@ -183,6 +183,35 @@ function renderOrders(orders) {
     });
 }
 
+// Authentication helper for admin operations
+function getAdminKey() {
+    let key = localStorage.getItem('admin_key');
+    if (!key) {
+        key = prompt("Please enter the Admin Secret Key:");
+        if (key) {
+            localStorage.setItem('admin_key', key);
+        }
+    }
+    return key;
+}
+
+async function fetchWithAdmin(url, options = {}) {
+    const key = getAdminKey();
+    if (!key) {
+        throw new Error("Admin key is required");
+    }
+    options.headers = {
+        ...options.headers,
+        'X-Admin-Key': key
+    };
+    const response = await fetch(url, options);
+    if (response.status === 401) {
+        localStorage.removeItem('admin_key');
+        alert("Invalid Admin Key. Please try again.");
+    }
+    return response;
+}
+
 async function uploadCsv() {
     const fileInput = document.getElementById('csvFile');
     if (!fileInput.files[0]) {
@@ -194,24 +223,69 @@ async function uploadCsv() {
     formData.append("file", fileInput.files[0]);
 
     try {
-        const response = await fetch(`${API_URL}/products/import`, {
+        const response = await fetchWithAdmin(`${API_URL}/products/import`, {
             method: 'POST',
             body: formData
         });
-        const result = await response.json();
-        if (response.ok) {
-            let alertMsg = `Import Complete!\n\nImported: ${result.imported_count}\nDiscarded: ${result.discarded_count}\n`;
-            if (result.discard_reasons && result.discard_reasons.length > 0) {
-                alertMsg += `\nReasons:\n` + result.discard_reasons.map(r => `Row ${r.row}: ${r.reason}`).join("\n");
+        
+        if (!response.ok) {
+            if (response.status !== 401) {
+                const result = await response.json();
+                alert(result.detail || "Error importing CSV");
             }
-            alert(alertMsg);
-            
-            fileInput.value = '';
-            loadAdminProducts();
-            loadProducts();
-        } else {
-            alert(result.detail || "Error importing CSV");
+            return;
         }
+
+        const result = await response.json();
+        const jobId = result.job_id;
+
+        // Show status banner of background processing
+        let statusDiv = document.getElementById('import-status-banner');
+        if (!statusDiv) {
+            statusDiv = document.createElement('div');
+            statusDiv.id = 'import-status-banner';
+            statusDiv.style = "background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.4); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; color: #93c5fd;";
+            const adminSection = document.getElementById('admin-section');
+            adminSection.insertBefore(statusDiv, adminSection.firstChild);
+        }
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = `<strong>CSV processing...</strong> Job ID: ${jobId}`;
+
+        // Poll status
+        const pollInterval = setInterval(async () => {
+            try {
+                const statusRes = await fetchWithAdmin(`${API_URL}/products/import/${jobId}`);
+                if (!statusRes.ok) {
+                    clearInterval(pollInterval);
+                    statusDiv.style.display = 'none';
+                    return;
+                }
+                const statusData = await statusRes.json();
+                if (statusData.status === 'completed') {
+                    clearInterval(pollInterval);
+                    statusDiv.style.display = 'none';
+                    
+                    let alertMsg = `Import Complete!\n\nImported: ${statusData.imported_count}\nDiscarded: ${statusData.discarded_count}\n`;
+                    if (statusData.discard_reasons && statusData.discard_reasons.length > 0) {
+                        alertMsg += `\nReasons:\n` + statusData.discard_reasons.map(r => `Row ${r.row}: ${r.reason}`).join("\n");
+                    }
+                    alert(alertMsg);
+                    
+                    fileInput.value = '';
+                    loadAdminProducts();
+                    loadProducts();
+                } else if (statusData.status === 'failed') {
+                    clearInterval(pollInterval);
+                    statusDiv.style.display = 'none';
+                    alert(`Import failed: ${statusData.error}`);
+                }
+            } catch (err) {
+                console.error(err);
+                clearInterval(pollInterval);
+                statusDiv.style.display = 'none';
+            }
+        }, 1000);
+
     } catch (error) {
         console.error("Error:", error);
         alert("Failed to upload CSV");
@@ -222,14 +296,14 @@ async function flushDatabase() {
     if (!confirm("Are you sure you want to flush the database? This will delete all products immediately.")) return;
     
     try {
-        const response = await fetch(`${API_URL}/products/flush`, {
+        const response = await fetchWithAdmin(`${API_URL}/products/flush`, {
             method: 'POST'
         });
         if (response.ok) {
             alert("Database flushed successfully!");
             loadAdminProducts();
             loadProducts();
-        } else {
+        } else if (response.status !== 401) {
             alert("Error flushing database");
         }
     } catch (error) {
