@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 
 
 class ProductBase(BaseModel):
@@ -13,6 +13,10 @@ class ProductBase(BaseModel):
     stock: Optional[int] = None
     weight_kg: Optional[float] = None
     is_draft: bool = False
+
+    @field_serializer("price")
+    def serialize_price(self, price: Optional[Decimal]) -> Optional[float]:
+        return float(price) if price is not None else None
 
 
 class ProductCreate(ProductBase):
