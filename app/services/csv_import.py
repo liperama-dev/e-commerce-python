@@ -37,8 +37,12 @@ def process_csv(decoded_content: str, db: Session) -> dict:
             if not any(clean_row.values()):
                 continue
 
+            # Start a savepoint for this row
+            db.begin_nested()
+
             name = clean_row.get("name", "")
             if not name.strip():
+                db.rollback()
                 discarded_count += 1
                 discard_reasons.append(
                     {"row": row_num, "reason": "Name cannot be empty or whitespace"}
@@ -49,6 +53,7 @@ def process_csv(decoded_content: str, db: Session) -> dict:
             threat_found = False
             for k, v in clean_row.items():
                 if isinstance(v, str) and is_security_threat(v):
+                    db.rollback()
                     discarded_count += 1
                     discard_reasons.append(
                         {"row": row_num, "reason": f"Security threat detected in column '{k}'"}
@@ -124,13 +129,26 @@ def process_csv(decoded_content: str, db: Session) -> dict:
                 )
                 db.add(new_product)
 
-            db.commit()
+            db.flush()  # Push changes to the DB to catch IntegrityErrors, etc.
             imported_count += 1
 
         except Exception as exc:
+            # Revert the savepoint
             db.rollback()
             discarded_count += 1
             discard_reasons.append({"row": row_num, "reason": str(exc)})
+
+    # Final commit for all successful rows
+    try:
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        return {
+            "message": "CSV processing failed during final commit",
+            "imported_count": 0,
+            "discarded_count": discarded_count + imported_count,
+            "discard_reasons": [{"row": "all", "reason": str(exc)}],
+        }
 
     return {
         "message": "CSV processed",
