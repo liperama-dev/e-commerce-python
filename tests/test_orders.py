@@ -34,7 +34,7 @@ def test_purchase_creates_order_record(client):
     resp = client.post(f"/api/products/{product['id']}/purchase", json={"quantity": 1})
     assert resp.status_code == 200
     order = resp.json()
-    assert order["unit_price"] == "9.99"
+    assert order["unit_price"] == 9.99
     assert "id" in order
     assert "created_at" in order
 

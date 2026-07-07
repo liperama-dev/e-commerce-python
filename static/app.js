@@ -12,6 +12,8 @@ function showSection(sectionId) {
         loadProducts();
     } else if (sectionId === 'admin') {
         loadAdminProducts();
+    } else if (sectionId === 'orders') {
+        loadOrders();
     }
 }
 
@@ -139,6 +141,46 @@ function activateDraftFilter() {
     const filter = document.getElementById('adminFilter');
     filter.value = 'drafts';
     loadAdminProducts();
+}
+
+// Orders Section
+async function loadOrders() {
+    try {
+        const response = await fetch(`${API_URL}/orders`);
+        const orders = await response.json();
+        renderOrders(orders);
+    } catch (error) {
+        console.error('Error fetching orders:', error);
+    }
+}
+
+function renderOrders(orders) {
+    const tbody = document.getElementById('orders-list');
+    const empty = document.getElementById('orders-empty');
+    tbody.innerHTML = '';
+
+    if (!orders || orders.length === 0) {
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+
+    orders.forEach(o => {
+        const tr = document.createElement('tr');
+        const total = o.unit_price != null ? (o.unit_price * o.quantity).toFixed(2) : 'N/A';
+        const unitPrice = o.unit_price != null ? `$${o.unit_price.toFixed(2)}` : 'N/A';
+        const date = new Date(o.created_at).toLocaleString();
+        tr.innerHTML = `
+            <td style="color: var(--text-secondary); font-size: 0.85rem;">#${o.id}</td>
+            <td>${o.product_name || '—'}</td>
+            <td style="color: var(--text-secondary);">${o.product_sku || '—'}</td>
+            <td>${o.quantity}</td>
+            <td>${unitPrice}</td>
+            <td style="color: var(--accent); font-weight: 600;">$${total}</td>
+            <td style="color: var(--text-secondary); font-size: 0.85rem;">${date}</td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 async function uploadCsv() {
@@ -374,6 +416,7 @@ async function confirmPurchase(e) {
                 alert("Payment successful! Your order is confirmed.");
                 closeModal('purchaseModal');
                 loadProducts(); // refresh stock
+                loadOrders();   // reflect new order in history
             } else {
                 const err = await response.json();
                 alert(err.detail || "Purchase failed");

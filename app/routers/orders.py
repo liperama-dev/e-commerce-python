@@ -6,10 +6,30 @@ from app.models.order import Order
 from app.models.product import Product
 from app.schemas.order import OrderResponse, PurchaseRequest
 
-router = APIRouter(prefix="/api/products", tags=["orders"])
+router = APIRouter(prefix="/api", tags=["orders"])
 
 
-@router.post("/{product_id}/purchase", response_model=OrderResponse)
+@router.get("/orders", response_model=list[OrderResponse])
+def list_orders(db: Session = Depends(get_db)):
+    """
+    Return all orders, newest first, with product name and SKU joined in.
+    """
+    rows = (
+        db.query(Order, Product.name, Product.sku)
+        .join(Product, Order.product_id == Product.id)
+        .order_by(Order.created_at.desc())
+        .all()
+    )
+    results = []
+    for order, product_name, product_sku in rows:
+        resp = OrderResponse.model_validate(order)
+        resp.product_name = product_name
+        resp.product_sku = product_sku
+        results.append(resp)
+    return results
+
+
+@router.post("/products/{product_id}/purchase", response_model=OrderResponse)
 def purchase_product(
     product_id: int, request: PurchaseRequest, db: Session = Depends(get_db)
 ):
@@ -45,4 +65,7 @@ def purchase_product(
     db.commit()
     db.refresh(order)
 
-    return order
+    resp = OrderResponse.model_validate(order)
+    resp.product_name = product.name
+    resp.product_sku = product.sku
+    return resp

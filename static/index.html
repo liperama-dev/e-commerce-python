@@ -17,6 +17,7 @@
         <nav>
             <button onclick="showSection('products')" class="nav-btn active">Shop</button>
             <button onclick="showSection('admin')" class="nav-btn">Admin</button>
+            <button onclick="showSection('orders')" class="nav-btn">Orders</button>
         </nav>
     </header>
 
@@ -91,6 +92,33 @@
                         <!-- Admin product rows -->
                     </tbody>
                 </table>
+            </div>
+        </section>
+
+        <!-- Orders Section -->
+        <section id="orders-section">
+            <div class="section-header">
+                <h2>Order History</h2>
+                <button onclick="loadOrders()" class="btn-secondary">&#8635; Refresh</button>
+            </div>
+            <div class="table-container glass-panel">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-list">
+                        <!-- Order rows injected here -->
+                    </tbody>
+                </table>
+                <p id="orders-empty" style="display:none; text-align:center; color: var(--text-secondary); padding: 2rem;">No orders yet. Make a purchase from the Shop!</p>
             </div>
         </section>
     </main>
@@ -177,6 +205,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=5"></script>
+    <script src="/static/app.js?v=6"></script>
 </body>
 </html>
