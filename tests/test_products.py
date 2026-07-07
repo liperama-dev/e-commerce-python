@@ -112,6 +112,27 @@ def test_create_product_duplicate_sku(client):
     assert "SKU" in response.json()["detail"]
 
 
+def test_create_product_auto_creates_category(client):
+    payload = {**PRODUCT_PAYLOAD, "sku": "SKU-NEW-CAT", "category": "Outdoor Gear"}
+    response = client.post("/api/products", json=payload)
+    assert response.status_code == 201
+    assert response.json()["category"] == "Outdoor Gear"
+
+    categories = client.get("/api/categories").json()
+    assert any(c["name"] == "Outdoor Gear" for c in categories)
+
+
+def test_create_product_normalizes_category_whitespace(client):
+    payload = {**PRODUCT_PAYLOAD, "sku": "SKU-TRIM-CAT", "category": "  Kitchen  "}
+    response = client.post("/api/products", json=payload)
+    assert response.status_code == 201
+    assert response.json()["category"] == "Kitchen"
+
+    categories = client.get("/api/categories").json()
+    assert any(c["name"] == "Kitchen" for c in categories)
+    assert not any(c["name"] == "  Kitchen  " for c in categories)
+
+
 # ---------------------------------------------------------------------------
 # PUT /api/products/{id}
 # ---------------------------------------------------------------------------
@@ -149,3 +170,88 @@ def test_delete_product_success(client):
 def test_delete_product_not_found(client):
     response = client.delete("/api/products/9999")
     assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# POST /api/products/{id}/publish & /unpublish
+# ---------------------------------------------------------------------------
+
+def _create_draft(client, **overrides):
+    payload = {
+        "name": "Draft Widget",
+        "sku": "SKU-DRAFT-PUB",
+        "category": "Misc",
+        "price": 9.99,
+        "stock": 10,
+        "weight_kg": 0.5,
+        "is_draft": True,
+    }
+    payload.update(overrides)
+    return client.post("/api/products", json=payload).json()
+
+
+def test_publish_product_success(client):
+    product = _create_draft(client)
+    response = client.post(f"/api/products/{product['id']}/publish")
+    assert response.status_code == 200
+
+    updated = client.get(f"/api/products/{product['id']}").json()
+    assert updated["is_draft"] is False
+
+
+def test_publish_product_missing_price_stays_draft(client):
+    product = _create_draft(client, sku="SKU-NO-PRICE", price=None)
+    response = client.post(f"/api/products/{product['id']}/publish")
+    assert response.status_code == 400
+    assert "Price" in response.json()["detail"]
+
+    updated = client.get(f"/api/products/{product['id']}").json()
+    assert updated["is_draft"] is True
+
+
+def test_publish_product_missing_multiple_fields(client):
+    product = _create_draft(
+        client,
+        sku="SKU-MULTI-MISSING",
+        name=None,
+        price=None,
+        stock=None,
+        weight_kg=None,
+    )
+    response = client.post(f"/api/products/{product['id']}/publish")
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "Name" in detail
+    assert "Price" in detail
+    assert "Stock" in detail
+    assert "Weight (kg)" in detail
+
+    updated = client.get(f"/api/products/{product['id']}").json()
+    assert updated["is_draft"] is True
+
+
+def test_publish_product_not_found(client):
+    response = client.post("/api/products/9999/publish")
+    assert response.status_code == 404
+
+
+def test_unpublish_product_success(client):
+    created = client.post("/api/products", json=PRODUCT_PAYLOAD).json()
+    response = client.post(f"/api/products/{created['id']}/unpublish")
+    assert response.status_code == 200
+
+    updated = client.get(f"/api/products/{created['id']}").json()
+    assert updated["is_draft"] is True
+
+
+def test_update_is_draft_false_blocked_when_incomplete(client):
+    product = _create_draft(client, sku="SKU-UPDATE-PUB", price=None)
+    response = client.put(
+        f"/api/products/{product['id']}",
+        json={"is_draft": False},
+    )
+    assert response.status_code == 400
+    assert "Price" in response.json()["detail"]
+
+    updated = client.get(f"/api/products/{product['id']}").json()
+    assert updated["is_draft"] is True

@@ -185,8 +185,17 @@ async function togglePublish() {
     const isDraft = btn.getAttribute('data-is-draft') === 'true';
     const action = isDraft ? 'publish' : 'unpublish';
     
+    // Save the product first before publishing/unpublishing
+    const saveSuccess = await saveProductData();
+    if (!saveSuccess) {
+        return; // Don't proceed if save failed
+    }
+    
+    // Get the updated product ID in case this was a new product
+    const updatedId = document.getElementById('productId').value;
+    
     try {
-        const response = await fetchWithAdmin(`${API_URL}/products/${id}/${action}`, { method: 'POST' });
+        const response = await fetchWithAdmin(`${API_URL}/products/${updatedId}/${action}`, { method: 'POST' });
         if (response.ok) {
             closeModal('productModal');
             loadAdminProducts();
@@ -201,19 +210,20 @@ async function togglePublish() {
     }
 }
 
-async function saveProduct(e) {
-    e.preventDefault();
+async function saveProductData() {
     const id = document.getElementById('productId').value;
     
     const priceVal = document.getElementById('price').value;
     const stockVal = document.getElementById('stock').value;
     const weightVal = document.getElementById('weight_kg').value;
 
+    const categoryVal = document.getElementById('category').value.trim();
+
     const product = {
         name: document.getElementById('name').value,
         sku: document.getElementById('sku').value,
         description: document.getElementById('description').value,
-        category: document.getElementById('category').value,
+        category: categoryVal || 'Misc',
         price: priceVal !== '' ? parseFloat(priceVal) : null,
         stock: stockVal !== '' ? parseInt(stockVal, 10) : null,
         weight_kg: weightVal !== '' ? parseFloat(weightVal) : null,
@@ -232,16 +242,32 @@ async function saveProduct(e) {
         });
 
         if (response.ok) {
-            closeModal('productModal');
+            const savedProduct = await response.json();
+            // Update the productId in case this was a new product
+            if (!id) {
+                document.getElementById('productId').value = savedProduct.id;
+            }
+            populateCategoryDatalist();
             loadAdminProducts();
             loadProducts();
+            return true;
         } else {
             const err = await response.json();
             alert(err.detail || "Error saving product");
+            return false;
         }
     } catch (error) {
         console.error("Error:", error);
         alert("Failed to save product");
+        return false;
+    }
+}
+
+async function saveProduct(e) {
+    e.preventDefault();
+    const success = await saveProductData();
+    if (success) {
+        closeModal('productModal');
     }
 }
 
@@ -322,6 +348,7 @@ async function submitCategoryForm(e) {
         if (res.ok) {
             nameInput.value = '';
             loadAdminCategories();
+            populateCategoryDatalist();
         } else {
             const err = await res.json();
             alert(err.detail || "Error creating category");
@@ -343,7 +370,8 @@ async function editCategory(id, currentName) {
         });
         if (res.ok) {
             loadAdminCategories();
-            loadAdminProducts(); // update product table view if needed
+            loadAdminProducts();
+            populateCategoryDatalist();
         } else {
             const err = await res.json();
             alert(err.detail || "Error updating category");
@@ -363,6 +391,7 @@ async function deleteCategory(id) {
         if (res.ok) {
             loadAdminCategories();
             loadAdminProducts();
+            populateCategoryDatalist();
         } else {
             const err = await res.json();
             alert(err.detail || "Error deleting category");

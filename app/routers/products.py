@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
 from app.services.category import get_or_create_category
+from app.services.product_validation import assert_publishable
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
@@ -69,10 +70,18 @@ def update_product(
         category_name = update_data.pop("category")
         category = get_or_create_category(db, category_name)
         db_product.category_id = category.id
-        
+
+    publishing = update_data.pop("is_draft", None)
+
     for key, value in update_data.items():
         setattr(db_product, key, value)
-        
+
+    if publishing is False:
+        assert_publishable(db_product)
+        db_product.is_draft = False
+    elif publishing is not None:
+        db_product.is_draft = publishing
+
     db.commit()
     db.refresh(db_product)
     return db_product
@@ -93,6 +102,7 @@ def publish_product(product_id: int, db: Session = Depends(get_db)):
     db_product = db.query(Product).filter(Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
+    assert_publishable(db_product)
     db_product.is_draft = False
     db.commit()
     return {"message": "Product published"}
