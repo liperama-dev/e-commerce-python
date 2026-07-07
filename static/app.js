@@ -118,12 +118,14 @@ async function loadAdminProducts() {
         const badge = p.is_draft ? draftBadge() : '';
         const priceCell = p.price != null ? `$${p.price.toFixed(2)}` : naTag();
         const stockCell = p.stock != null ? p.stock : naTag();
+        const weightCell = p.weight_kg != null ? `${p.weight_kg.toFixed(2)} kg` : naTag();
         tr.innerHTML = `
             <td>${p.sku}</td>
             <td>${p.name} ${badge}</td>
             <td>${p.category}</td>
             <td>${priceCell}</td>
             <td>${stockCell}</td>
+            <td>${weightCell}</td>
             <td>
                 <button class="btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&#39;")})'>Edit</button>
                 <button class="btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="deleteProduct(${p.id})">Delete</button>
